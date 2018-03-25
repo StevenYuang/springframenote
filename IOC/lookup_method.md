@@ -1,20 +1,23 @@
 Method injection
+
 In most application scenarios, most beans in the container are singletons. When a singleton bean needs to collaborate with another singleton bean, or a non-singleton bean needs to collaborate with another non-singleton bean, you typically handle the dependency by defining one bean as a property of the other. A problem arises when the bean lifecycles are different. Suppose singleton bean A needs to use non-singleton (prototype) bean B, perhaps on each method invocation on A. The container only creates the singleton bean A once, and thus only gets one opportunity to set the properties. The container cannot provide bean A with a new instance of bean B every time one is needed.
+
 A solution is to forego some inversion of control. You can make bean A aware of the container by implementing the ApplicationContextAware interface, and by making a getBean("B") call to the container ask for (a typically new) bean B instance every time bean A needs it. The following is an example of this approach:
 
 // a class that uses a stateful Command-style class to perform some processing
 package fiona.apple;
 // Spring-API imports
 import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext; import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 public class CommandManager implements ApplicationContextAware {
-private ApplicationContext applicationContext;
-public Object process(Map commandState) {
-// grab a new instance of the appropriate Command
-Command command = createCommand();
-// set the state on the (hopefully brand new) Command instance command.setState(commandState);
-return command.execute();
-}
+ private ApplicationContext applicationContext;
+ public Object process(Map commandState) {
+  // grab a new instance of the appropriate Command
+  Command command = createCommand();
+  // set the state on the (hopefully brand new) Command instance command.setState(commandState);
+  return command.execute();
+ }
 protected Command createCommand() {
 // notice the Spring API dependency!
 return this.applicationContext.getBean("command", Command.class);
@@ -76,20 +79,22 @@ Alternatively, within the annotation-based component model, you may declare a lo
 </bean>
  
 public abstract class CommandManager {
-public Object process(Object commandState) { Command command = createCommand(); command.setState(commandState);
-return command.execute();
+ public Object process(Object commandState) { Command command = createCommand(); command.setState(commandState);
+ return command.execute();
+ }
+  @Lookup("myCommand")
+ protected abstract Command createCommand(); 
 }
- @Lookup("myCommand")
-protected abstract Command createCommand(); }
 
 
 Or, more idiomatically, you may rely on the target bean getting resolved against the declared return type of the lookup method:
 public abstract class CommandManager {
-public Object process(Object commandState) { MyCommand command = createCommand(); command.setState(commandState);
-return command.execute();
+ public Object process(Object commandState) { MyCommand command = createCommand(); command.setState(commandState);
+ return command.execute();
+ }
+ @Lookup
+ protected abstract MyCommand createCommand(); 
 }
-@Lookup
-protected abstract MyCommand createCommand(); }
 Note that you will typically declare such annotated lookup methods with a concrete stub implementation, in order for them to be compatible with Spring’s component scanning rules where abstract classes get ignored by default. This limitation does not apply in case of explicitly registered or explicitly imported bean classes.
 
 
